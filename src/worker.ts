@@ -2,9 +2,12 @@ import { buildRecipePrompt, buildItineraryPrompt, parseAIResponse } from './prom
 import type { RecipeResult, RecipeRequest, ItineraryRequest } from './types';
 
 export interface Env {
-  KIMI_API_KEY: string;
-  KIMI_BASE_URL?: string;
-  KIMI_MODEL?: string;
+  AI: {
+    run(
+      model: string,
+      inputs: { messages: Array<{ role: string; content: string }> }
+    ): Promise<{ response?: string; content?: string }>;
+  };
 }
 
 const CORS_HEADERS = {
@@ -20,37 +23,30 @@ function jsonResponse(data: unknown, status = 200): Response {
   });
 }
 
-async function callKimi(prompt: string, env: Env): Promise<string> {
-  const baseUrl = env.KIMI_BASE_URL || 'https://api.moonshot.cn/v1';
-  const model = env.KIMI_MODEL || 'kimi-k2.6';
-
-  const response = await fetch(`${baseUrl}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${env.KIMI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: 'system', content: 'Sos un asistente experto que SIEMPRE devuelve JSON válido sin texto adicional.' },
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0.7,
-      max_tokens: 4000,
-    }),
+async function callAI(prompt: string, env: Env): Promise<string> {
+  const result = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
+    max_tokens: 4096,
+    messages: [
+      {
+        role: 'system',
+        content:
+          'Sos un asistente experto que SIEMPRE devuelve JSON válido sin texto adicional.',
+      },
+      { role: 'user', content: prompt },
+    ],
   });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Kimi API error: ${response.status} — ${error}`);
+  // Workers AI puede devolver response o content según el modelo
+  const text =
+    (result as { response?: string }).response ??
+    (result as { content?: string }).content ??
+    (typeof result === 'string' ? result : '');
+
+  if (!text) {
+    throw new Error('La IA no devolvió contenido');
   }
 
-  const data = await response.json() as {
-    choices: Array<{ message: { content: string } }>;
-  };
-
-  return data.choices[0]?.message?.content ?? '';
+  return text;
 }
 
 export default {
@@ -65,22 +61,24 @@ export default {
     if (url.pathname === '/api/health' && request.method === 'GET') {
       return jsonResponse({
         status: 'ok',
-        model: env.KIMI_MODEL || 'kimi-k2.6',
-        keyConfigured: !!env.KIMI_API_KEY,
+        model: '@cf/meta/llama-3.1-8b-instruct',
+        source: 'cloudflare-workers-ai',
+        keyConfigured: true,
       });
     }
 
     // Recipe generation
     if (url.pathname === '/api/recipe' && request.method === 'POST') {
       try {
-        const body = await request.json() as RecipeRequest;
+        const body = (await request.json()) as RecipeRequest;
         const prompt = buildRecipePrompt(body);
-        const aiText = await callKimi(prompt, env);
+        const aiText = await callAI(prompt, env);
         const parsed = parseAIResponse(aiText) as RecipeResult;
         parsed.id = Date.now().toString();
         return jsonResponse({ success: true, data: parsed });
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Error desconocido';
+        const message =
+          err instanceof Error ? err.message : 'Error desconocido';
         return jsonResponse({ success: false, error: message }, 500);
       }
     }
@@ -88,14 +86,15 @@ export default {
     // Itinerary generation
     if (url.pathname === '/api/itinerary' && request.method === 'POST') {
       try {
-        const body = await request.json() as ItineraryRequest;
+        const body = (await request.json()) as ItineraryRequest;
         const prompt = buildItineraryPrompt(body);
-        const aiText = await callKimi(prompt, env);
+        const aiText = await callAI(prompt, env);
         const parsed = parseAIResponse(aiText) as RecipeResult;
         parsed.id = Date.now().toString();
         return jsonResponse({ success: true, data: parsed });
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Error desconocido';
+        const message =
+          err instanceof Error ? err.message : 'Error desconocido';
         return jsonResponse({ success: false, error: message }, 500);
       }
     }

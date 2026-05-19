@@ -2,9 +2,5 @@ name = "esloquehay-backend"
 main = "src/worker.ts"
 compatibility_date = "2025-01-01"
 
-[vars]
-KIMI_BASE_URL = "https://api.moonshot.cn/v1"
-KIMI_MODEL = "kimi-k2.6"
-
-# Para configurar KIMI_API_KEY como secreto:
-# wrangler secret put KIMI_API_KEY
+[ai]
+binding = "AI"
