@@ -36,6 +36,8 @@ export interface RecipeRequest {
   servings?: number;
   maxPrepTime?: number;
   additionalIngredient?: string;
+  budget?: string;
+  language?: string;
 }
 
 export interface ItineraryRequest {

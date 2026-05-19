@@ -9,11 +9,25 @@ export function buildRecipePrompt(req: RecipeRequest): string {
     servings = 2,
     maxPrepTime = 45,
     additionalIngredient = '',
+    budget = 'medium',
+    language = 'es',
   } = req;
 
   const allIngredients = additionalIngredient
     ? [...ingredients, additionalIngredient]
     : ingredients;
+
+  const budgetInstructions =
+    budget === 'low'
+      ? 'Presupuesto ECONÓMICO: la persona tiene pocos recursos. La receta debe usar MÍNIMO de ingredientes, ser muy simple, sin ingredientes caros o difíciles de conseguir. Prioriza sustanciosidad y sabor con lo básico. No uses vino, hierbas exoticas, ni técnicas complejas.'
+      : budget === 'high'
+        ? 'Presupuesto SIN LÍMITE: puedes sugerir ingredientes extra de calidad, técnicas avanzadas, y presentación de restaurante.'
+        : 'Presupuesto BALANCEADO: receta realista para el día a día.';
+
+  const languageInstructions =
+    language === 'es'
+      ? 'El tono debe ser cálido, en español neutro/latino. Usa "tienes", "puedes", "sirve".'
+      : `Responde ÚNICAMENTE en idioma ${language}. Adapta el tono culturalmente.`;
 
   return `Eres un chef gourmet latinoamericano creativo y práctico. Vas a crear una receta ÚNICA usando EXCLUSIVAMENTE estos ingredientes que la persona ya tiene: ${allIngredients.join(', ')}.
 
@@ -23,13 +37,14 @@ Contexto:
 - Nivel de cocina: ${skillLevel}
 - Comensales: ${servings}
 - Tiempo máximo total: ${maxPrepTime} minutos
+- ${budgetInstructions}
+- ${languageInstructions}
 
 REGLAS ESTRICTAS:
 1. USA ÚNICAMENTE los ingredientes listados (puedes usar agua, sal, pimienta, aceite básico sin contarlos).
 2. La receta debe ser realista y ejecutable.
-3. El tono debe ser cálido, en español neutro/latino (NO argentino). Usa "tenés", "podés", "serví".
-4. Incluye tips gourmet que ELEVARÍAN el plato a nivel restaurante (técnicas, sustituciones, presentación).
-5. Genera 3 VARIACIONES completamente diferentes usando los MISMOS ingredientes base.
+3. Incluye tips gourmet que ELEVARÍAN el plato a nivel restaurante (técnicas, sustituciones, presentación).
+4. Genera 3 VARIACIONES completamente diferentes usando los MISMOS ingredientes base.
 
 DEVUELVE EXACTAMENTE este JSON, sin markdown, sin explicaciones previas, SOLO el JSON:
 
@@ -75,7 +90,7 @@ Contexto:
 
 REGLAS ESTRICTAS:
 1. El itinerario debe ser realista, ejecutable y adaptado al presupuesto.
-2. El tono debe ser cálido, en español neutro/latino. Usa "tenés", "podés", "llevá".
+2. El tono debe ser cálido, en español neutro/latino. Usa "tienes", "puedes", "lleva".
 3. Incluye tips de viajero experimentado (hacks de transporte, dónde comer local, cómo ahorrar).
 4. Genera 3 VARIACIONES del mismo destino con enfoques diferentes (aventura, relax, cultural, gastronómico).
 5. Incluye presupuesto estimado en moneda local.
