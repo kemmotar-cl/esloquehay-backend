@@ -1,8 +1,24 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { getCorsHeaders } from '../middleware/cors';
 import { checkRateLimit } from '../middleware/rateLimit';
 import { containsInjection, sanitizeIngredients } from '../middleware/security';
 import { log } from '../middleware/logger';
+import type { KVNamespace } from '../types';
+
+function createMockKV(): KVNamespace {
+  const store = new Map<string, string>();
+  return {
+    async get(key: string) {
+      return store.get(key) ?? null;
+    },
+    async put(key: string, value: string, _options?: unknown) {
+      store.set(key, value);
+    },
+    async delete(key: string) {
+      store.delete(key);
+    },
+  } as unknown as KVNamespace;
+}
 
 describe('middleware/cors', () => {
   it('returns allowed origin when Origin matches', () => {
@@ -29,36 +45,42 @@ describe('middleware/cors', () => {
 });
 
 describe('middleware/rateLimit', () => {
-  it('allows first request', () => {
-    const result = checkRateLimit('1.2.3.4');
+  let mockKV: KVNamespace;
+
+  beforeEach(() => {
+    mockKV = createMockKV();
+  });
+
+  it('allows first request', async () => {
+    const result = await checkRateLimit('1.2.3.4', mockKV);
     expect(result.allowed).toBe(true);
   });
 
-  it('allows requests under limit', () => {
+  it('allows requests under limit', async () => {
     const ip = '1.2.3.5';
     for (let i = 0; i < 9; i++) {
-      checkRateLimit(ip);
+      await checkRateLimit(ip, mockKV);
     }
-    const result = checkRateLimit(ip);
+    const result = await checkRateLimit(ip, mockKV);
     expect(result.allowed).toBe(true);
   });
 
-  it('blocks requests over limit', () => {
+  it('blocks requests over limit', async () => {
     const ip = '1.2.3.6';
     for (let i = 0; i < 10; i++) {
-      checkRateLimit(ip);
+      await checkRateLimit(ip, mockKV);
     }
-    const result = checkRateLimit(ip);
+    const result = await checkRateLimit(ip, mockKV);
     expect(result.allowed).toBe(false);
     expect(result.retryAfter).toBeDefined();
   });
 
-  it('resets after window expires', () => {
+  it('resets after window expires', async () => {
     const ip = '1.2.3.7';
     for (let i = 0; i < 10; i++) {
-      checkRateLimit(ip);
+      await checkRateLimit(ip, mockKV);
     }
-    expect(checkRateLimit(ip).allowed).toBe(false);
+    expect((await checkRateLimit(ip, mockKV)).allowed).toBe(false);
   });
 });
 

@@ -50,7 +50,7 @@ describe('handleRecipe', () => {
     expect(result.status).toBe(200);
     expect(result.success).toBe(true);
     expect(result.data).toBeDefined();
-    expect(result.data.title).toBe('Pollo al horno');
+    expect(result.data!.title).toBe('Pollo al horno');
   });
 });
 

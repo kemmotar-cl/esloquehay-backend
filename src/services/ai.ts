@@ -2,12 +2,16 @@ import { buildRecipePrompt, buildItineraryPrompt, parseAIResponse } from '../pro
 import { recipeResultSchema } from '../schemas';
 import type { RecipeResult, RecipeRequest, ItineraryRequest } from '../types';
 
+export interface Env {
+  AI: { run: (model: string, inputs: unknown) => Promise<{ response?: string; content?: string }> };
+}
+
 export interface AIService {
   generate(prompt: string): Promise<string>;
 }
 
 // Cloudflare Workers AI implementation
-export function createWorkersAIService(env: { AI: { run: (model: string, inputs: unknown) => Promise<{ response?: string; content?: string }> } }): AIService {
+export function createWorkersAIService(env: Env): AIService {
   return {
     async generate(prompt: string): Promise<string> {
       const result = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', {

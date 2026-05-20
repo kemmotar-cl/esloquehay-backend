@@ -1,18 +1,34 @@
-/**
- * In-memory rate limiter.
- * WARNING: This is local to each Worker instance and resets on cold starts.
- * For production-grade distributed rate limiting, use Cloudflare KV or Durable Objects.
- */
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+import type { KVNamespace } from '../types';
+
 const RATE_LIMIT = 10;
 const RATE_WINDOW_MS = 60_000;
+const KV_KEY_PREFIX = 'ratelimit:';
+const KV_TTL_SECONDS = 60;
 
-export function checkRateLimit(ip: string): { allowed: boolean; retryAfter?: number } {
+interface RateLimitEntry {
+  count: number;
+  resetAt: number;
+}
+
+export async function checkRateLimit(
+  ip: string,
+  kv: KVNamespace
+): Promise<{ allowed: boolean; retryAfter?: number }> {
+  const key = `${KV_KEY_PREFIX}${ip}`;
   const now = Date.now();
-  const entry = rateLimitMap.get(ip);
 
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
+  const raw = await kv.get(key);
+  if (!raw) {
+    const entry: RateLimitEntry = { count: 1, resetAt: now + RATE_WINDOW_MS };
+    await kv.put(key, JSON.stringify(entry), { expirationTtl: KV_TTL_SECONDS });
+    return { allowed: true };
+  }
+
+  const entry = JSON.parse(raw) as RateLimitEntry;
+
+  if (now > entry.resetAt) {
+    const newEntry: RateLimitEntry = { count: 1, resetAt: now + RATE_WINDOW_MS };
+    await kv.put(key, JSON.stringify(newEntry), { expirationTtl: KV_TTL_SECONDS });
     return { allowed: true };
   }
 
@@ -21,5 +37,6 @@ export function checkRateLimit(ip: string): { allowed: boolean; retryAfter?: num
   }
 
   entry.count++;
+  await kv.put(key, JSON.stringify(entry), { expirationTtl: KV_TTL_SECONDS });
   return { allowed: true };
 }

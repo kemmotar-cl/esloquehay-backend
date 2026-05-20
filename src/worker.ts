@@ -1,5 +1,6 @@
 import type { Env as AiEnv } from './services/ai';
 import { createWorkersAIService } from './services/ai';
+import type { KVNamespace } from './types';
 import { handleRecipe } from './handlers/recipe';
 import { handleItinerary } from './handlers/itinerary';
 import { handleHealth } from './handlers/health';
@@ -39,7 +40,9 @@ export default {
     const path = url.pathname;
 
     // Rate limiting
-    const rateCheck = checkRateLimit(clientIP);
+    const rateCheck = env.CACHE
+      ? await checkRateLimit(clientIP, env.CACHE)
+      : { allowed: true };
     if (!rateCheck.allowed) {
       log('warn', 'rate_limit_exceeded', { path, clientIP, sessionId });
       return jsonResponse(
