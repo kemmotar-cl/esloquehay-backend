@@ -34,7 +34,7 @@ async function callAI(prompt: string, env: Env): Promise<string> {
       },
       { role: 'user', content: prompt },
     ],
-  });
+  } as unknown as Parameters<typeof env.AI.run>[1]);
 
   // Workers AI puede devolver response o content según el modelo
   const text =
