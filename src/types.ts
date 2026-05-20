@@ -20,7 +20,7 @@ export interface RecipeResult {
   steps: string[];
   prepTime: number;
   cookTime: number;
-  difficulty: 'Fácil' | 'Medio' | 'Difícil';
+  difficulty: 'easy' | 'medium' | 'hard';
   servings: number;
   gourmetTips: GourmetTip[];
   variations: Variation[];

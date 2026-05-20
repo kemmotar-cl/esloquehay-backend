@@ -30,7 +30,7 @@ async function callAI(prompt: string, env: Env): Promise<string> {
       {
         role: 'system',
         content:
-          'Sos un asistente experto que SIEMPRE devuelve JSON válido sin texto adicional.',
+          'You are a traditional cuisine expert assistant. You ALWAYS return valid JSON without any additional text, markdown, or explanations. When asked for a recipe, you suggest real, known traditional dishes adapted to available ingredients. Never invent fictional dishes.',
       },
       { role: 'user', content: prompt },
     ],

@@ -23,6 +23,7 @@
     "nodemon": "^3.1.7",
     "ts-node": "^10.9.2",
     "typescript": "^5.6.3",
+    "vitest": "^4.1.6",
     "wrangler": "^4.92.0"
   }
 }

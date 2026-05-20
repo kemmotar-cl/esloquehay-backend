@@ -1,5 +1,32 @@
 import type { RecipeRequest, ItineraryRequest } from './types';
 
+const LANGUAGE_NAMES: Record<string, string> = {
+  es: 'español neutro/latino',
+  en: 'English',
+  zh: '中文',
+  hi: 'हिन्दी',
+  ar: 'العربية',
+  fr: 'français',
+  bn: 'বাংলা',
+  pt: 'português',
+  ru: 'русский',
+  ur: 'اردو',
+  id: 'Bahasa Indonesia',
+  de: 'Deutsch',
+  ja: '日本語',
+  vi: 'Tiếng Việt',
+  tr: 'Türkçe',
+  yo: 'Yorùbá',
+  mr: 'मराठी',
+  te: 'తెలుగు',
+  ta: 'தமிழ்',
+  ko: '한국어',
+};
+
+function getLanguageName(code: string): string {
+  return LANGUAGE_NAMES[code] ?? code;
+}
+
 export function buildRecipePrompt(req: RecipeRequest): string {
   const {
     ingredients,
@@ -24,12 +51,13 @@ export function buildRecipePrompt(req: RecipeRequest): string {
         ? 'Presupuesto SIN LÍMITE: puedes sugerir ingredientes extra de calidad, técnicas avanzadas, y presentación de restaurante.'
         : 'Presupuesto BALANCEADO: receta realista para el día a día.';
 
+  const langName = getLanguageName(language);
   const languageInstructions =
     language === 'es'
-      ? 'El tono debe ser cálido, en español neutro/latino. Usa "tienes", "puedes", "sirve".'
-      : `Responde ÚNICAMENTE en idioma ${language}. Adapta el tono culturalmente.`;
+      ? 'TODA la receta debe estar en español neutro/latino: título, descripción, pasos, tips, variaciones, maridaje, emplatado. Usa "tienes", "puedes", "sirve".'
+      : `TODA la receta debe estar COMPLETAMENTE en ${langName}: título, descripción, pasos, tips, variaciones, maridaje, emplatado. No uses español ni inglés en ningún campo. Adapta el tono culturalmente al idioma y región.`;
 
-  return `Eres un chef gourmet latinoamericano creativo y práctico. Vas a crear una receta ÚNICA usando EXCLUSIVAMENTE estos ingredientes que la persona ya tiene: ${allIngredients.join(', ')}.
+  return `Eres un chef tradicional experto en gastronomía latinoamericana e internacional. Vas a sugerir una receta CONOCIDA y tradicional del país o región indicada, ligeramente adaptada para que se pueda preparar usando principalmente estos ingredientes que la persona ya tiene: ${allIngredients.join(', ')}.
 
 Contexto:
 - País/región: ${country}
@@ -41,28 +69,29 @@ Contexto:
 - ${languageInstructions}
 
 REGLAS ESTRICTAS:
-1. USA ÚNICAMENTE los ingredientes listados (puedes usar agua, sal, pimienta, aceite básico sin contarlos).
-2. La receta debe ser realista y ejecutable.
-3. Incluye tips gourmet que ELEVARÍAN el plato a nivel restaurante (técnicas, sustituciones, presentación).
-4. Genera 3 VARIACIONES completamente diferentes usando los MISMOS ingredientes base.
+1. SUGIERE una receta REAL y CONOCIDA (ej: arroz con pollo, paella, risotto, ceviche, mole, pasta al pesto, etc.). NO inventes platos nuevos. Si no existe una receta tradicional exacta con esos ingredientes, elige la más cercana posible y adáptala ligeramente.
+2. Menciona el nombre tradicional del plato en el título.
+3. Usa la MAYOR CANTIDAD POSIBLE de los ingredientes listados, pero NO fuerces ninguno si no encaja naturalmente en la receta tradicional. Puedes omitir algunos ingredientes si la preparación quedaría forzada o extraña. Siempre prioriza que el plato sea reconocible y apetitoso sobre usar todos los ingredientes. Puedes usar agua, sal, pimienta, aceite básico sin contarlos.
+4. Incluye tips gourmet que elevarían el plato, pero manteniendo la esencia de la receta tradicional.
+5. Genera 3 VARIACIONES LIGERAS de la misma receta tradicional (por ejemplo: al horno, a la sartén, con un toque regional diferente, o versión vegetariana).
 
 DEVUELVE EXACTAMENTE este JSON, sin markdown, sin explicaciones previas, SOLO el JSON:
 
 {
-  "title": "Nombre creativo y tentador de la receta",
+  "title": "Nombre tradicional del plato (adaptado)",
   "description": "Descripción de 1-2 oraciones que vende la experiencia",
   "experience": "Frase corta evocativa del tipo de experiencia (ej: 'Comfort food que abraza el alma')",
   "ingredients": ["cantidad + ingrediente 1", "cantidad + ingrediente 2", ...],
   "steps": ["Paso 1 detallado", "Paso 2 detallado", ...],
   "prepTime": numero_en_minutos,
   "cookTime": numero_en_minutos,
-  "difficulty": "Fácil|Medio|Difícil",
+  "difficulty": "easy|medium|hard",
   "servings": ${servings},
   "gourmetTips": [
     {"title": "Título del tip", "description": "Explicación detallada", "technique": "Nombre técnico en francés o inglés"}
   ],
   "variations": [
-    {"name": "Nombre de la variación", "description": "Cómo cambia", "extraIngredients": ["+ ingrediente extra 1", "+ ingrediente extra 2"], "twist": "Categoría (ej: Fusión asiática)"}
+    {"name": "Nombre de la variación", "description": "Cómo cambia", "extraIngredients": ["+ ingrediente extra 1", "+ ingrediente extra 2"], "twist": "Categoría (ej: Versión al horno)"}
   ],
   "winePairing": "Sugerencia específica de vino o bebida con justificación",
   "platingTip": "Consejo de emplatado para que se vea como en restaurante"
@@ -79,7 +108,7 @@ export function buildItineraryPrompt(req: ItineraryRequest): string {
     companions = 2,
   } = req;
 
-  return `Eres un viajero experto latinoamericano apasionado. Vas a crear un itinerario ÚNICO basado en los elementos/recursos que esta persona ya tiene para viajar: ${elements.join(', ')}.
+  return `Eres un viajero experto latinoamericano apasionado. Vas a crear un itinerario basado en los elementos/recursos que esta persona ya tiene para viajar: ${elements.join(', ')}.
 
 Contexto:
 - País/región de origen: ${country}

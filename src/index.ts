@@ -28,7 +28,7 @@ async function callKimi(prompt: string): Promise<string> {
     body: JSON.stringify({
       model: KIMI_MODEL,
       messages: [
-        { role: 'system', content: 'Sos un asistente experto que SIEMPRE devuelve JSON válido sin texto adicional.' },
+        { role: 'system', content: 'You are a traditional cuisine expert assistant. You ALWAYS return valid JSON without any additional text, markdown, or explanations. When asked for a recipe, you suggest real, known traditional dishes adapted to available ingredients. Never invent fictional dishes.' },
         { role: 'user', content: prompt },
       ],
       temperature: 0.7,
