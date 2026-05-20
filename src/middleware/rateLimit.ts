@@ -1,3 +1,8 @@
+/**
+ * In-memory rate limiter.
+ * WARNING: This is local to each Worker instance and resets on cold starts.
+ * For production-grade distributed rate limiting, use Cloudflare KV or Durable Objects.
+ */
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT = 10;
 const RATE_WINDOW_MS = 60_000;

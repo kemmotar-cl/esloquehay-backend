@@ -6,7 +6,7 @@ const ALLOWED_ORIGINS = [
 
 export function getCorsHeaders(request: Request): Record<string, string> {
   const origin = request.headers.get('Origin') ?? '';
-  const allowOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  const allowOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : '';
   return {
     'Access-Control-Allow-Origin': allowOrigin,
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',

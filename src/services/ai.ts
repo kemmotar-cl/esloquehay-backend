@@ -1,4 +1,5 @@
 import { buildRecipePrompt, buildItineraryPrompt, parseAIResponse } from '../prompts';
+import { recipeResultSchema } from '../schemas';
 import type { RecipeResult, RecipeRequest, ItineraryRequest } from '../types';
 
 export interface AIService {
@@ -45,50 +46,59 @@ export function createKimiAIService(): AIService {
       if (!apiKey) {
         throw new Error('KIMI_API_KEY no configurada');
       }
-      const response = await fetch(`${baseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model,
-          messages: [
-            {
-              role: 'system',
-              content:
-                'You are a traditional cuisine expert assistant. You ALWAYS return valid JSON without any additional text, markdown, or explanations. When asked for a recipe, you suggest real, known traditional dishes adapted to available ingredients. Never invent fictional dishes.',
-            },
-            { role: 'user', content: prompt },
-          ],
-          temperature: 0.7,
-          max_tokens: 4000,
-        }),
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30_000);
 
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`Kimi API error: ${response.status} — ${error}`);
+      try {
+        const response = await fetch(`${baseUrl}/chat/completions`, {
+          method: 'POST',
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              {
+                role: 'system',
+                content:
+                  'You are a traditional cuisine expert assistant. You ALWAYS return valid JSON without any additional text, markdown, or explanations. When asked for a recipe, you suggest real, known traditional dishes adapted to available ingredients. Never invent fictional dishes.',
+              },
+              { role: 'user', content: prompt },
+            ],
+            temperature: 0.7,
+            max_tokens: 4000,
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.text();
+          throw new Error(`Kimi API error: ${response.status} — ${error}`);
+        }
+
+        const data = (await response.json()) as {
+          choices: Array<{ message: { content: string } }>;
+        };
+        return data.choices[0]?.message?.content ?? '';
+      } finally {
+        clearTimeout(timeoutId);
       }
-
-      const data = (await response.json()) as {
-        choices: Array<{ message: { content: string } }>;
-      };
-      return data.choices[0]?.message?.content ?? '';
     },
   };
 }
 
-// Shared generation logic
+// Shared generation logic with Zod validation
 export async function generateRecipe(
   request: RecipeRequest,
   ai: AIService
 ): Promise<RecipeResult> {
   const prompt = buildRecipePrompt(request);
   const aiText = await ai.generate(prompt);
-  const parsed = parseAIResponse(aiText) as RecipeResult;
-  parsed.id = Date.now().toString();
-  return parsed;
+  const parsed = parseAIResponse(aiText);
+  const validated = recipeResultSchema.parse(parsed);
+  validated.id = Date.now().toString();
+  return validated as RecipeResult;
 }
 
 export async function generateItinerary(
@@ -97,7 +107,8 @@ export async function generateItinerary(
 ): Promise<RecipeResult> {
   const prompt = buildItineraryPrompt(request);
   const aiText = await ai.generate(prompt);
-  const parsed = parseAIResponse(aiText) as RecipeResult;
-  parsed.id = Date.now().toString();
-  return parsed;
+  const parsed = parseAIResponse(aiText);
+  const validated = recipeResultSchema.parse(parsed);
+  validated.id = Date.now().toString();
+  return validated as RecipeResult;
 }

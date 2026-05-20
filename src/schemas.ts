@@ -27,5 +27,32 @@ export const itineraryRequestSchema = z.object({
   language: z.string().max(10).optional(),
 });
 
+export const recipeResultSchema = z.object({
+  id: z.string().optional(),
+  title: z.string().min(1),
+  description: z.string().min(1),
+  experience: z.string(),
+  ingredients: z.array(z.string()),
+  steps: z.array(z.string()),
+  prepTime: z.number().int().min(0),
+  cookTime: z.number().int().min(0),
+  difficulty: z.enum(['easy', 'medium', 'hard']),
+  servings: z.number().int().min(1),
+  gourmetTips: z.array(z.object({
+    title: z.string(),
+    description: z.string(),
+    technique: z.string().optional(),
+  })),
+  variations: z.array(z.object({
+    name: z.string(),
+    description: z.string(),
+    extraIngredients: z.array(z.string()),
+    twist: z.string(),
+  })),
+  winePairing: z.string().optional(),
+  platingTip: z.string().optional(),
+});
+
 export type ValidatedRecipeRequest = z.infer<typeof recipeRequestSchema>;
 export type ValidatedItineraryRequest = z.infer<typeof itineraryRequestSchema>;
+export type ValidatedRecipeResult = z.infer<typeof recipeResultSchema>;

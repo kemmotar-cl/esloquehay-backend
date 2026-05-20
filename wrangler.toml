@@ -7,4 +7,4 @@ binding = "AI"
 
 [[kv_namespaces]]
 binding = "CACHE"
-id = "esloquehay-cache"
+id = "your-kv-namespace-id"  # Replace with your actual Cloudflare KV namespace ID
